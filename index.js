@@ -41,6 +41,13 @@ async function run() {
       res.send(result);
     });
 
+    //get all service in service page
+
+    app.get("/api/mama/services", async (req, res) => {
+      const result = await servicesCollection.find().toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
