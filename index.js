@@ -118,10 +118,14 @@ async function run() {
       res.send(result);
     });
 
-    //get a service for update
+    //get a service info for update
 
-    app.get("/api/mama/updateService/:id", verifyToken, async (req, res) => {
+    app.get("/api/mama/updateService/:id", logger, verifyToken, async (req, res) => {
       const id = req.params.id;
+
+      // if(req.user?.email !== serviceProviderEmail){
+      //   return res.status(403).send({ message: "forbidden access" });
+      // }
 
       const query = { _id: new ObjectId(id) };
       const options = {
@@ -136,6 +140,51 @@ async function run() {
       const result = await servicesCollection.findOne(query, options);
       res.send(result);
     });
+    //get a service info for Details page
+
+    app.get("/api/mama/serviceDetails/:id", logger, verifyToken, async (req, res) => {
+      const id = req.params.id;
+
+     
+      const query = { _id: new ObjectId(id) };
+      // const options = {
+      //   projection: {
+      //     image: 1,
+      //     serviceName: 1,
+      //     price: 1,
+      //     serviceArea: 1,
+      //     description: 1,
+      //   },
+      // };
+      const result = await servicesCollection.findOne(query);
+      res.send(result);
+    });
+
+    //update service data
+    app.patch('/api/mama/update/:id', async(req,res)=>{
+      const id =req.params.id;
+
+      const filter ={_id: new ObjectId(id)};
+
+      
+      const updateData = req.body;
+
+     
+
+      const updateDoc ={
+        $set: {
+          image: updateData.image,
+          serviceName: updateData.serviceName,
+          price: updateData.price,
+          serviceArea: updateData.serviceArea,
+          description: updateData.description,
+
+        }
+      }
+      console.log(updateDoc);
+      const result = await servicesCollection.updateOne(filter,updateDoc)
+res.send(result);
+    })
 
     //delete service data
     app.delete("/api/mama/delete/:id", async (req, res) => {
