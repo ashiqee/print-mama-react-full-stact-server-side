@@ -62,6 +62,7 @@ async function run() {
     // await client.connect();
 
     const servicesCollection = client.db("printMamaDB").collection("services");
+    const serviceBookingCollection = client.db("printMamaDB").collection('serviceBookings')
 
     //auth JWT api securere
 
@@ -92,6 +93,33 @@ async function run() {
       const result = await servicesCollection.insertOne(service);
       res.send(result);
     });
+
+//post a booking service
+
+app.post('/api/mama/booking',async (req,res)=>{
+  const bookedData = req.body;
+  const result = await serviceBookingCollection.insertOne(bookedData);
+  res.send(result);
+})
+
+
+
+//get my booking data
+
+app.get('/api/mama/mybooking',verifyToken,logger,async(req,res)=>{
+  if (req.user?.email !== req.query.email) {
+    return res.status(403).send({ message: "forbidden access" });
+  }
+  // console.log(req.query.email);
+  let query = {};
+  if (req.query?.email) {
+    query = { userEmail: req.query.email };
+  }
+  // console.log(query);
+  const result = await serviceBookingCollection.find(query).toArray();
+  res.send(result);
+})
+
 
     //get all service in service page
 
