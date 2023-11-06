@@ -2,10 +2,10 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
-const cookieParser = require('cookie-parser')
-const jwt = require('jsonwebtoken');
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const port = process.env.PORT || 5000;
 
@@ -17,8 +17,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(cookieParser())
-
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lxmrjjn.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -31,35 +30,31 @@ const client = new MongoClient(uri, {
   },
 });
 
-
 //middlewares
 
-const logger =(req,res,next)=>{
+const logger = (req, res, next) => {
   console.log("log", req.method, req.url);
-  next()
+  next();
+};
 
-}
-
-const verifyToken = (req,res,next)=>{
+const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
   console.log(token);
 
-  if(!token){
-    return res.status(401).send({message:'unauthorized access'})
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
   }
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{  
-      if(err){
-      return res.status(401).send({message: 'unauthorized access'})
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
     }
 
-  req.user = decoded;
- 
-  next()
-  
-  })
+    req.user = decoded;
 
-}
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -68,31 +63,28 @@ async function run() {
 
     const servicesCollection = client.db("printMamaDB").collection("services");
 
-
-   
     //auth JWT api securere
 
-    app.post("/api/mama/jwt", async (req,res)=>{
+    app.post("/api/mama/jwt", async (req, res) => {
       const user = req.body;
 
-     
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: 60 * 60,
+      });
 
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{expiresIn:60*60})
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
 
-      res.cookie('token',token,{
-        httpOnly:true,
-        secure:true,
-        sameSite:"none",
-      }) .send({success: true})
-    })
-
-    app.post('/api/mama/logout',async(req,res)=>{
+    app.post("/api/mama/logout", async (req, res) => {
       const user = req.body;
-      res.clearCookie('token',{maxAge:0}).send({success:true})
-    })
-
-
-
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
 
     //POST A SERVICE
     app.post("/api/mama/services", async (req, res) => {
@@ -110,24 +102,30 @@ async function run() {
 
     // get user base service
 
-    app.get('/api/mama/myservice',verifyToken, logger, async (req,res)=>{
+    app.get("/api/mama/myservice", verifyToken, logger, async (req, res) => {
       console.log(req.user.email, req.query.email);
 
-      if(req.user?.email !== req.query.email){
-        return res.status(403).send({message: 'forbidden access'})
+      if (req.user?.email !== req.query.email) {
+        return res.status(403).send({ message: "forbidden access" });
       }
       console.log(req.query.email);
-      let query={};
-      if(req.query?.email){
-        query = {serviceProviderEmail: req.query.email}
-
+      let query = {};
+      if (req.query?.email) {
+        query = { serviceProviderEmail: req.query.email };
       }
       console.log(query);
-      const result = await servicesCollection.find(query).toArray()
-      res.send(result)
+      const result = await servicesCollection.find(query).toArray();
+      res.send(result);
+    });
 
+    app.delete("/api/mama/delete/:id", async (req, res) => {
+      const id = req.params.id;
 
-    })
+      const query = { _id: new ObjectId(id) };
+
+      const result = await servicesCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
