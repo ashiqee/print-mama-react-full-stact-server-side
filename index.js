@@ -103,21 +103,41 @@ async function run() {
     // get user base service
 
     app.get("/api/mama/myservice", verifyToken, logger, async (req, res) => {
-      console.log(req.user.email, req.query.email);
+      // console.log(req.user.email, req.query.email);
 
       if (req.user?.email !== req.query.email) {
         return res.status(403).send({ message: "forbidden access" });
       }
-      console.log(req.query.email);
+      // console.log(req.query.email);
       let query = {};
       if (req.query?.email) {
         query = { serviceProviderEmail: req.query.email };
       }
-      console.log(query);
+      // console.log(query);
       const result = await servicesCollection.find(query).toArray();
       res.send(result);
     });
 
+    //get a service for update
+
+    app.get("/api/mama/updateService/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const options = {
+        projection: {
+          image: 1,
+          serviceName: 1,
+          price: 1,
+          serviceArea: 1,
+          description: 1,
+        },
+      };
+      const result = await servicesCollection.findOne(query, options);
+      res.send(result);
+    });
+
+    //delete service data
     app.delete("/api/mama/delete/:id", async (req, res) => {
       const id = req.params.id;
 
