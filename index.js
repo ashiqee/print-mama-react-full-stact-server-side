@@ -33,13 +33,13 @@ const client = new MongoClient(uri, {
 //middlewares
 
 const logger = (req, res, next) => {
-  console.log("log", req.method, req.url);
+  // console.log("log", req.method, req.url);
   next();
 };
 
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
-  console.log(token);
+  // console.log(token);
 
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
@@ -146,6 +146,48 @@ app.get('/api/mama/mybooking',verifyToken,logger,async(req,res)=>{
       res.send(result);
     });
 
+
+    app.get('/api/mama/pendingService', verifyToken, async(req,res)=>{
+      if(req.user?.email !== req.query.email){
+        res.res.status(403).send({message:"forbidden access"})
+      }
+
+
+      let query={};
+      if(req.query?.email){
+        query = {providerEmail: req.query.email};
+
+      }
+      const result = await serviceBookingCollection.find(query).toArray();
+      res.send(result)
+    })
+
+
+    //pending work updated
+
+    app.patch('/api/mama/updatePending/:id' ,async (req,res)=>{
+ const id = req.params.id;
+      const statusUpate = req.body;
+      const filter = {_id: new ObjectId(id)}
+
+
+ const updateStatus ={
+        $set: {
+          serviceStatus: statusUpate.serviceStatus,
+         
+
+        }
+      }
+      console.log(statusUpate);
+      const result = await serviceBookingCollection.updateOne(filter,updateStatus)
+res.send(result);
+
+    })
+
+
+
+
+
     //get a service info for update
 
     app.get("/api/mama/updateService/:id", logger, verifyToken, async (req, res) => {
@@ -209,7 +251,7 @@ app.get('/api/mama/mybooking',verifyToken,logger,async(req,res)=>{
 
         }
       }
-      console.log(updateDoc);
+      // console.log(updateDoc);
       const result = await servicesCollection.updateOne(filter,updateDoc)
 res.send(result);
     })
