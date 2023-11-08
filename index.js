@@ -9,16 +9,15 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { query } = require("express");
 
 const port = process.env.PORT || 5000;
-
+app.use(express.json());
+app.use(cookieParser());
 //middleware
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://print-mama.web.app",
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lxmrjjn.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -140,12 +139,12 @@ async function run() {
 
     // get user base service
 
-    app.get("/api/mama/myservice", verifyToken, logger, async (req, res) => {
+    app.get("/api/mama/myService", async (req, res) => {
       // console.log(req.user.email, req.query.email);
 
-      if (req.user?.email !== req.query.email) {
-        return res.status(403).send({ message: "forbidden access" });
-      }
+      // if (req.user?.email !== req.query.email) {
+      //   return res.status(403).send({ message: "forbidden access" });
+      // }
       // console.log(req.query.email);
       let query = {};
       if (req.query?.email) {
@@ -156,10 +155,10 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/api/mama/pendingService", verifyToken, async (req, res) => {
-      if (req.user?.email !== req.query.email) {
-        res.status(403).send({ message: "forbidden access" });
-      }
+    app.get("/api/mama/pendingService", async (req, res) => {
+      // if (req.user?.email !== req.query.email) {
+      //   res.status(403).send({ message: "forbidden access" });
+      // }
 
       let query = {};
       if (req.query?.email) {
@@ -194,7 +193,7 @@ async function run() {
     app.get(
       "/api/mama/updateService/:id",
       logger,
-      verifyToken,
+
       async (req, res) => {
         const id = req.params.id;
 
@@ -221,7 +220,7 @@ async function run() {
     app.get(
       "/api/mama/serviceDetails/:id",
       logger,
-      verifyToken,
+
       async (req, res) => {
         const id = req.params.id;
 
