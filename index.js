@@ -14,7 +14,8 @@ app.use(cookieParser());
 //middleware
 app.use(
   cors({
-    origin: "https://print-mama.web.app",
+    origin: ["https://print-mama.web.app",
+  'http://localhost:5174'],
     credentials: true,
   })
 );
