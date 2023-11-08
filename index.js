@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { query } = require("express");
 
 const port = process.env.PORT || 5000;
 
@@ -62,7 +63,9 @@ async function run() {
     // await client.connect();
 
     const servicesCollection = client.db("printMamaDB").collection("services");
-    const serviceBookingCollection = client.db("printMamaDB").collection('serviceBookings')
+    const serviceBookingCollection = client
+      .db("printMamaDB")
+      .collection("serviceBookings");
 
     //auth JWT api securere
 
@@ -94,33 +97,40 @@ async function run() {
       res.send(result);
     });
 
-//post a booking service
+    //post a booking service
 
-app.post('/api/mama/booking',async (req,res)=>{
-  const bookedData = req.body;
-  const result = await serviceBookingCollection.insertOne(bookedData);
-  res.send(result);
-})
+    app.post("/api/mama/booking", async (req, res) => {
+      const bookedData = req.body;
+      const result = await serviceBookingCollection.insertOne(bookedData);
+      res.send(result);
+    });
 
+    //get my booking data
 
+    app.get("/api/mama/mybooking", verifyToken, logger, async (req, res) => {
+      if (req.user?.email !== req.query.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      // console.log(req.query.email);
+      let query = {};
+      if (req.query?.email) {
+        query = { userEmail: req.query.email };
+      }
+      // console.log(query);
+      const result = await serviceBookingCollection.find(query).toArray();
+      res.send(result);
+    });
 
-//get my booking data
+    //get Search Data
+    app.get("/api/mama/service", async (req, res) => {
+      const filter = req?.query;
+      console.log(filter.search);
 
-app.get('/api/mama/mybooking',verifyToken,logger,async(req,res)=>{
-  if (req.user?.email !== req.query.email) {
-    return res.status(403).send({ message: "forbidden access" });
-  }
-  // console.log(req.query.email);
-  let query = {};
-  if (req.query?.email) {
-    query = { userEmail: req.query.email };
-  }
-  // console.log(query);
-  const result = await serviceBookingCollection.find(query).toArray();
-  res.send(result);
-})
-
-
+      const result = await servicesCollection
+        .find({ serviceName: { $regex: filter.search } })
+        .toArray();
+      res.send(result);
+    });
     //get all service in service page
 
     app.get("/api/mama/services", async (req, res) => {
@@ -146,115 +156,111 @@ app.get('/api/mama/mybooking',verifyToken,logger,async(req,res)=>{
       res.send(result);
     });
 
-
-    app.get('/api/mama/pendingService', verifyToken, async(req,res)=>{
-      if(req.user?.email !== req.query.email){
-        res.res.status(403).send({message:"forbidden access"})
+    app.get("/api/mama/pendingService", verifyToken, async (req, res) => {
+      if (req.user?.email !== req.query.email) {
+        res.status(403).send({ message: "forbidden access" });
       }
 
-
-      let query={};
-      if(req.query?.email){
-        query = {providerEmail: req.query.email};
-
+      let query = {};
+      if (req.query?.email) {
+        query = { providerEmail: req.query.email };
       }
       const result = await serviceBookingCollection.find(query).toArray();
-      res.send(result)
-    })
-
+      res.send(result);
+    });
 
     //pending work updated
 
-    app.patch('/api/mama/updatePending/:id' ,async (req,res)=>{
- const id = req.params.id;
-      const statusUpate = req.body;
-      const filter = {_id: new ObjectId(id)}
+    app.patch("/api/mama/updatePending/:id", async (req, res) => {
+      const id = req.params.id;
+      const statusUpdate = req.body;
+      const filter = { _id: new ObjectId(id) };
 
-
- const updateStatus ={
+      const updateStatus = {
         $set: {
-          serviceStatus: statusUpate.serviceStatus,
-         
-
-        }
-      }
-      console.log(statusUpate);
-      const result = await serviceBookingCollection.updateOne(filter,updateStatus)
-res.send(result);
-
-    })
-
-
-
-
+          serviceStatus: statusUpdate.serviceStatus,
+        },
+      };
+      // console.log(statusUpdate);
+      const result = await serviceBookingCollection.updateOne(
+        filter,
+        updateStatus
+      );
+      res.send(result);
+    });
 
     //get a service info for update
 
-    app.get("/api/mama/updateService/:id", logger, verifyToken, async (req, res) => {
-      const id = req.params.id;
+    app.get(
+      "/api/mama/updateService/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
 
-      // if(req.user?.email !== serviceProviderEmail){
-      //   return res.status(403).send({ message: "forbidden access" });
-      // }
+        // if(req.user?.email !== serviceProviderEmail){
+        //   return res.status(403).send({ message: "forbidden access" });
+        // }
 
-      const query = { _id: new ObjectId(id) };
-      const options = {
-        projection: {
-          image: 1,
-          serviceName: 1,
-          price: 1,
-          serviceArea: 1,
-          description: 1,
-        },
-      };
-      const result = await servicesCollection.findOne(query, options);
-      res.send(result);
-    });
+        const query = { _id: new ObjectId(id) };
+        const options = {
+          projection: {
+            image: 1,
+            serviceName: 1,
+            price: 1,
+            serviceArea: 1,
+            description: 1,
+          },
+        };
+        const result = await servicesCollection.findOne(query, options);
+        res.send(result);
+      }
+    );
     //get a service info for Details page
 
-    app.get("/api/mama/serviceDetails/:id", logger, verifyToken, async (req, res) => {
-      const id = req.params.id;
+    app.get(
+      "/api/mama/serviceDetails/:id",
+      logger,
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
 
-     
-      const query = { _id: new ObjectId(id) };
-      // const options = {
-      //   projection: {
-      //     image: 1,
-      //     serviceName: 1,
-      //     price: 1,
-      //     serviceArea: 1,
-      //     description: 1,
-      //   },
-      // };
-      const result = await servicesCollection.findOne(query);
-      res.send(result);
-    });
+        const query = { _id: new ObjectId(id) };
+        // const options = {
+        //   projection: {
+        //     image: 1,
+        //     serviceName: 1,
+        //     price: 1,
+        //     serviceArea: 1,
+        //     description: 1,
+        //   },
+        // };
+        const result = await servicesCollection.findOne(query);
+        res.send(result);
+      }
+    );
 
     //update service data
-    app.patch('/api/mama/update/:id', async(req,res)=>{
-      const id =req.params.id;
+    app.patch("/api/mama/update/:id", async (req, res) => {
+      const id = req.params.id;
 
-      const filter ={_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
 
-      
       const updateData = req.body;
 
-     
-
-      const updateDoc ={
+      const updateDoc = {
         $set: {
           image: updateData.image,
           serviceName: updateData.serviceName,
           price: updateData.price,
           serviceArea: updateData.serviceArea,
           description: updateData.description,
-
-        }
-      }
+        },
+      };
       // console.log(updateDoc);
-      const result = await servicesCollection.updateOne(filter,updateDoc)
-res.send(result);
-    })
+      const result = await servicesCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     //delete service data
     app.delete("/api/mama/delete/:id", async (req, res) => {
