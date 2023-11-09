@@ -107,10 +107,10 @@ async function run() {
 
     //get my booking data
 
-    app.get("/api/mama/mybooking", verifyToken, logger, async (req, res) => {
-      if (req.user?.email !== req.query.email) {
-        return res.status(403).send({ message: "forbidden access" });
-      }
+    app.get("/api/mama/mybooking",  async (req, res) => {
+      // if (req.user?.email !== req.query.email) {
+      //   return res.status(403).send({ message: "forbidden access" });
+      // }
       // console.log(req.query.email);
       let query = {};
       if (req.query?.email) {
